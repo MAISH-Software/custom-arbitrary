@@ -1,0 +1,70 @@
+from flask import Flask, render_template
+import ccxt
+from src.exchange.exchange_connections import get_coinex_spot_orderbook, get_gateio_futures_orderbook, calculate_entry_spread, calculate_exit_spread
+from config import COINEX_ACCESS_ID, COINEX_SECRET_KEY, GATEIO_ACCESS_ID, GATEIO_SECRET_KEY, DATABASE_URL
+from threading import Thread
+from time import sleep, time
+import plotly.graph_objs as go
+import json
+import psycopg2
+
+app = Flask(__name__)
+
+# Database connection
+conn = psycopg2.connect(DATABASE_URL)
+cur = conn.cursor()
+
+
+# Background task to continuously monitor spreads
+def background_task():
+    while True:
+        try:
+            coinex_ob = get_coinex_spot_orderbook()
+            gateio_ob = get_gateio_futures_orderbook()
+            entry_spread = calculate_entry_spread(coinex_ob, gateio_ob)
+            exit_spread = calculate_exit_spread(coinex_ob, gateio_ob)
+            timestamp = time()
+            
+            # Insert data into the database
+            cur.execute(
+                "INSERT INTO spreads (timestamp, entry_spread, exit_spread) VALUES (%s, %s, %s)",
+                (timestamp, entry_spread, exit_spread)
+            )
+            conn.commit()
+
+            sleep(5)
+        except Exception as e:
+            print(f"Error in background task: {e}")
+            sleep(5)
+
+# Route to display data
+@app.route('/')
+def index():
+    # Fetch the latest 1000 records from the database
+    cur.execute("SELECT * FROM spreads ORDER BY timestamp DESC LIMIT 1000")
+    history = cur.fetchall()
+    if history:
+        timestamps = [row[0] for row in history]
+        entry_spreads = [row[1] for row in history]
+        exit_spreads = [row[2] for row in history]
+
+        # Create Plotly graph
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=timestamps, y=entry_spreads, mode='lines', name='Entry Spread'))
+        fig.add_trace(go.Scatter(x=timestamps, y=exit_spreads, mode='lines', name='Exit Spread'))
+        fig.update_layout(title='Spread History', xaxis_title='Time', yaxis_title='Spread (%)')
+        graph_json = fig.to_json()
+
+        current_entry = history[0][1]
+        current_exit = history[0][2]
+    else:
+        graph_json = None
+        current_entry = 0
+        current_exit = 0
+
+    return render_template('index.html', entry_spread=current_entry, exit_spread=current_exit, graph_json=graph_dict)
+
+if __name__ == '__main__':
+    thread = Thread(target=background_task)
+    thread.start()
+    app.run(debug=True)

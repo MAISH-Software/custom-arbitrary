@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spread Dashboard</title>
+    <!-- Include Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h1>Spread Dashboard</h1>
+    <p>Current Entry Spread: {{ entry_spread }}%</p>
+    <p>Current Exit Spread: {{ exit_spread }}%</p>
+    <!-- Placeholder for the graph -->
+    <div id="graph" style="width: 100%; height: 500px;"></div>
+
+    <script>
+        // Assign the graph data directly as a JavaScript object
+        var graph_json = {{ graph_json | tojson | safe }};
+
+        // Check if graph_json is valid and render the plot
+        if (graph_json && graph_json.data && graph_json.layout) {
+            Plotly.newPlot('graph', graph_json.data, graph_json.layout)
+                .catch(function(error) {
+                    console.error('Plotly rendering error:', error);
+                });
+        } else {
+            console.error('Invalid graph_json data:', graph_json);
+        }
+    </script>
+</body>
+</html>
