@@ -11,12 +11,35 @@ import psycopg2
 
 app = Flask(__name__)
 
+# Initialize CoinEx and Gate.io API clients
+coinex = ccxt.coinex({
+    'apiKey': COINEX_ACCESS_ID,
+    'secret': COINEX_SECRET_KEY,
+})
+
+gateio = ccxt.gateio({
+    'apiKey': GATEIO_ACCESS_ID,
+    'secret': GATEIO_SECRET_KEY,
+})
+
 socketio = SocketIO(app)
 
 # Database connection
 conn = psycopg2.connect(DATABASE_URL)
 cur = conn.cursor()
 
+
+def place_spot_buy_order(amount):
+    coinex.create_market_buy_order('BTC/USDT', amount)  # Adjust based on your API setup
+
+def place_futures_sell_order(amount):
+    gateio.create_market_sell_order('BTC/USDT:USDT', amount)
+
+def place_spot_sell_order(amount):
+    coinex.create_market_sell_order('BTC/USDT', amount)
+
+def place_futures_buy_order(amount):
+    gateio.create_market_buy_order('BTC/USDT:USDT', amount)
 
 # Background task to continuously monitor spreads
 def background_task():
@@ -37,6 +60,20 @@ def background_task():
 
             # Send new data to all connected clients
             socketio.emit('new_data', {'entry_spread': entry_spread, 'exit_spread': exit_spread, 'timestamp': timestamp}, broadcast=True)
+
+            # Trading logic
+            lot_size = 0.001  # Adjust based on your API setup
+            SPRED_IN = 0.5  # Adjust based on your strategy
+            SPRED_OUT = 0.5  # Adjust based on your strategy
+
+            if entry_spread > SPRED_IN:
+                place_spot_buy_order(lot_size)
+                place_futures_sell_order(lot_size)
+                print("Entry order placed")
+            elif exit_spread > SPRED_OUT:
+                place_spot_sell_order(lot_size)
+                place_futures_buy_order(lot_size)
+                print("Exit order placed")
 
             sleep(5)
         except Exception as e:
