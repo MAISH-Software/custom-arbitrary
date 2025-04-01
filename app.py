@@ -1,4 +1,5 @@
 from flask import Flask, render_template
+from flask_socketio import SocketIO, emit
 import ccxt
 from src.exchange.exchange_connections import get_coinex_spot_orderbook, get_gateio_futures_orderbook, calculate_entry_spread, calculate_exit_spread
 from config import COINEX_ACCESS_ID, COINEX_SECRET_KEY, GATEIO_ACCESS_ID, GATEIO_SECRET_KEY, DATABASE_URL
@@ -9,6 +10,8 @@ import json
 import psycopg2
 
 app = Flask(__name__)
+
+socketio = SocketIO(app)
 
 # Database connection
 conn = psycopg2.connect(DATABASE_URL)
@@ -31,6 +34,9 @@ def background_task():
                 (timestamp, entry_spread, exit_spread)
             )
             conn.commit()
+
+            # Send new data to all connected clients
+            socketio.emit('new_data', {'entry_spread': entry_spread, 'exit_spread': exit_spread, 'timestamp': timestamp}, broadcast=True)
 
             sleep(5)
         except Exception as e:
@@ -62,9 +68,9 @@ def index():
         current_entry = 0
         current_exit = 0
 
-    return render_template('index.html', entry_spread=current_entry, exit_spread=current_exit, graph_json=graph_dict)
+    return render_template('index.html', entry_spread=current_entry, exit_spread=current_exit, graph_json=graph_json)
 
 if __name__ == '__main__':
     thread = Thread(target=background_task)
     thread.start()
-    app.run(debug=True)
+    socketio.run(app, debug=True)

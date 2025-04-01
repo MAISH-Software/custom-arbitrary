@@ -1,31 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Spread Dashboard</title>
-    <!-- Include Plotly.js -->
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <title>Crypto Arbitrage</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 </head>
 <body>
-    <h1>Spread Dashboard</h1>
-    <p>Current Entry Spread: {{ entry_spread }}%</p>
-    <p>Current Exit Spread: {{ exit_spread }}%</p>
-    <!-- Placeholder for the graph -->
-    <div id="graph" style="width: 100%; height: 500px;"></div>
+    <h1>Current Spreads</h1>
+    <p>Entry Spread: <span id="entry_spread">{{ entry_spread|round(2) }}%</span></p>
+    <p>Exit Spread: <span id="exit_spread">{{ exit_spread|round(2) }}%</span></p>
+    <div id="graph">{{ graph_json|safe }}</div> <!-- Adjust based on your Plotly setup -->
 
     <script>
-        // Assign the graph data directly as a JavaScript object
-        var graph_json = {{ graph_json | tojson | safe }};
-
-        // Check if graph_json is valid and render the plot
-        if (graph_json && graph_json.data && graph_json.layout) {
-            Plotly.newPlot('graph', graph_json.data, graph_json.layout)
-                .catch(function(error) {
-                    console.error('Plotly rendering error:', error);
-                });
-        } else {
-            console.error('Invalid graph_json data:', graph_json);
-        }
+        var socket = io();
+        socket.on('new_data', function(data) {
+            document.querySelector('#entry_spread').textContent = data.entry_spread.toFixed(2) + '%';
+            document.querySelector('#exit_spread').textContent = data.exit_spread.toFixed(2) + '%';
+            // Add graph updates here if needed (requires more setup)
+        });
     </script>
 </body>
 </html>
