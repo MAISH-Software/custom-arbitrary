@@ -1,8 +1,10 @@
 from flask import Flask, render_template
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO
 import ccxt
 from src.exchange.exchange_connections import get_coinex_spot_orderbook, get_gateio_futures_orderbook, calculate_entry_spread, calculate_exit_spread
-from config import COINEX_ACCESS_ID, COINEX_SECRET_KEY, GATEIO_ACCESS_ID, GATEIO_SECRET_KEY, DATABASE_URL
+from src.arbitrage.trading import place_spot_buy_order, place_futures_sell_order, place_spot_sell_order, place_futures_buy_order
+from src.notifications.telegram import send_telegram_message
+from config import COINEX_ACCESS_ID, COINEX_SECRET_KEY, GATEIO_ACCESS_ID, GATEIO_SECRET_KEY, DATABASE_URL, SPRED_IN, SPRED_OUT, LOT_SIZE
 from threading import Thread
 from time import sleep, time
 import plotly.graph_objs as go
@@ -24,22 +26,25 @@ gateio = ccxt.gateio({
 
 socketio = SocketIO(app)
 
+@socketio.on('manual_trade')
+def handle_manual_trade(data):
+    action = data['action']
+    if action == 'enter':
+        place_spot_buy_order(LOT_SIZE)  # LOT_SIZE is USDT cost
+        place_futures_sell_order(0.001)  # 0.001 BTC hardcoded
+        print("Manual entry trade executed")
+        send_telegram_message("Manual entry trade executed: Buy Spot, Sell Futures")
+    elif action == 'exit':
+        place_spot_sell_order(0.001) # 0.001 BTC hardcoded
+        place_futures_buy_order(LOT_SIZE)
+        print("Manual exit trade executed")
+        send_telegram_message("Manual exit trade executed: Sell Spot, Buy Futures")
+
 # Database connection
 conn = psycopg2.connect(DATABASE_URL)
 cur = conn.cursor()
 
 
-def place_spot_buy_order(amount):
-    coinex.create_market_buy_order('BTC/USDT', amount)  # Adjust based on your API setup
-
-def place_futures_sell_order(amount):
-    gateio.create_market_sell_order('BTC/USDT:USDT', amount)
-
-def place_spot_sell_order(amount):
-    coinex.create_market_sell_order('BTC/USDT', amount)
-
-def place_futures_buy_order(amount):
-    gateio.create_market_buy_order('BTC/USDT:USDT', amount)
 
 # Background task to continuously monitor spreads
 def background_task():
@@ -53,31 +58,31 @@ def background_task():
             
             # Insert data into the database
             cur.execute(
-                "INSERT INTO spreads (timestamp, entry_spread, exit_spread) VALUES (%s, %s, %s)",
+                "INSERT INTO spreads (timestamp, entry_spread, exit_spread) VALUES (to_timestamp(%s), %s, %s)",
                 (timestamp, entry_spread, exit_spread)
             )
             conn.commit()
 
             # Send new data to all connected clients
-            socketio.emit('new_data', {'entry_spread': entry_spread, 'exit_spread': exit_spread, 'timestamp': timestamp}, broadcast=True)
+            socketio.emit('new_data', {'entry_spread': entry_spread, 'exit_spread': exit_spread}, namespace='/')
 
-            # Trading logic
-            lot_size = 0.001  # Adjust based on your API setup
-            SPRED_IN = 0.5  # Adjust based on your strategy
-            SPRED_OUT = 0.5  # Adjust based on your strategy
+            lot_size = LOT_SIZE
 
             if entry_spread > SPRED_IN:
                 place_spot_buy_order(lot_size)
                 place_futures_sell_order(lot_size)
                 print("Entry order placed")
+                send_telegram_message("Entered arbitrage trade: Buy Spot, Sell Futures")
             elif exit_spread > SPRED_OUT:
                 place_spot_sell_order(lot_size)
                 place_futures_buy_order(lot_size)
                 print("Exit order placed")
+                send_telegram_message("Exited arbitrage trade: Sell Spot, Buy Futures")
 
             sleep(5)
         except Exception as e:
             print(f"Error in background task: {e}")
+            conn.rollback()
             sleep(5)
 
 # Route to display data
@@ -107,7 +112,23 @@ def index():
 
     return render_template('index.html', entry_spread=current_entry, exit_spread=current_exit, graph_json=graph_json)
 
+def test_db_insert():
+    try:
+        timestamp = time()
+        entry_spread = 0.5
+        exit_spread = 0.3
+        cur.execute(
+            "INSERT INTO spreads (timestamp, entry_spread, exit_spread) VALUES (to_timestamp(%s), %s, %s)",
+            (timestamp, entry_spread, exit_spread)
+        )
+        conn.commit()
+        print("Test insert successful")
+    except Exception as e:
+        print(f"Test insert failed: {e}")
+        conn.rollback()
+
 if __name__ == '__main__':
+    test_db_insert()
     thread = Thread(target=background_task)
     thread.start()
     socketio.run(app, debug=True)

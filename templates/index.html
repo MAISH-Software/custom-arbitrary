@@ -1,22 +1,81 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Crypto Arbitrage</title>
+    <meta charset="UTF-8">
+    <title>Crypto Arbitrage Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .spread {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .button {
+            padding: 12px 24px;
+            margin: 10px;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        .button:hover {
+            opacity: 0.9;
+        }
+        .enter {
+            background-color: #28a745;  /* Green for buy */
+        }
+        .exit {
+            background-color: #dc3545;  /* Red for sell */
+        }
+        #graph {
+            width: 100%;
+            height: 400px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
 </head>
 <body>
-    <h1>Current Spreads</h1>
-    <p>Entry Spread: <span id="entry_spread">{{ entry_spread|round(2) }}%</span></p>
-    <p>Exit Spread: <span id="exit_spread">{{ exit_spread|round(2) }}%</span></p>
-    <div id="graph">{{ graph_json|safe }}</div> <!-- Adjust based on your Plotly setup -->
+    <h1>Crypto Arbitrage Dashboard</h1>
+    <div class="spread">
+        <p>Entry Spread: <span id="entry_spread">{{ entry_spread|round(2) }}%</span></p>
+        <p>Exit Spread: <span id="exit_spread">{{ exit_spread|round(2) }}%</span></p>
+    </div>
+    <div id="graph"></div>
+    <h2>Manual Trading</h2>
+    <button class="button enter" onclick="manualTrade('enter')">Enter Trade (Buy Spot, Sell Futures)</button>
+    <button class="button exit" onclick="manualTrade('exit')">Exit Trade (Sell Spot, Buy Futures)</button>
 
     <script>
         var socket = io();
+        socket.on('connect', function() {
+            var graph_json = JSON.parse('{{ graph_json|safe }}');
+            Plotly.newPlot('graph', graph_json.data, graph_json.layout);
+        });
         socket.on('new_data', function(data) {
             document.querySelector('#entry_spread').textContent = data.entry_spread.toFixed(2) + '%';
             document.querySelector('#exit_spread').textContent = data.exit_spread.toFixed(2) + '%';
-            // Add graph updates here if needed (requires more setup)
         });
+
+        function manualTrade(action) {
+            socket.emit('manual_trade', {action: action});
+            alert('Manual ' + action + ' trade executed');
+        }
     </script>
 </body>
 </html>
