@@ -53,8 +53,8 @@
 <body>
     <h1>Crypto Arbitrage Dashboard</h1>
     <div class="spread">
-        <p>Entry Spread: <span id="entry_spread">{{ entry_spread|round(2) }}%</span></p>
-        <p>Exit Spread: <span id="exit_spread">{{ exit_spread|round(2) }}%</span></p>
+        <p>Entry Spread: <span id="entry_spread">{{ entry_spread|round(2) if entry_spread is defined else 'N/A' }}%</span></p>
+        <p>Exit Spread: <span id="exit_spread">{{ exit_spread|round(2) if exit_spread is defined else 'N/A' }}%</span></p>
     </div>
     <div id="graph"></div>
     <h2>Manual Trading</h2>

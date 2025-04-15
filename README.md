@@ -23,7 +23,20 @@ This project provides a real-time dashboard for monitoring and executing arbitra
    git clone <repository_url>
    cd CrypArbSpot
 
-2. Create a virtual environment and install  dependencies
+2. Upload and Unzip the Project
+If you have a zipped version, transfer it to your VPS
+```
+scp /path/to/your_project.zip username@your_server_ip:/home/username/
+```
+Then, log into your VPS and unzip:
+```
+ssh username@your_server_ip
+cd /home/username/
+unzip your_project.zip -d your_project
+cd your_project
+```
+
+3. Create a virtual environment and install  dependencies
  - python -m venv env
  - source env/bin/activate # On Windows: env\Scripts\activate
  - pip install -r requirements.txt
