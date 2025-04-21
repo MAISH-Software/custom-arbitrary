@@ -47,34 +47,264 @@
             background: white;
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .pair-selector {
+            margin: 20px 0;
+        }
+        .status-message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .active-positions {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
         }
     </style>
 </head>
 <body>
     <h1>Crypto Arbitrage Dashboard</h1>
+
+    <div class="pair-selector">
+        <label for="symbol-select">Select Trading Pair:</label>
+        <select id="symbol-select" onchange="changeSymbol(this.value)">
+            {% for pair in trading_pairs %}
+                <option value="{{ pair }}" {% if pair == symbol %}selected{% endif %}>{{ pair }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
     <div class="spread">
+        <p>Current Symbol: <span id="current_symbol">{{ symbol if symbol is defined else 'N/A' }}</span></p>
         <p>Entry Spread: <span id="entry_spread">{{ entry_spread|round(2) if entry_spread is defined else 'N/A' }}%</span></p>
         <p>Exit Spread: <span id="exit_spread">{{ exit_spread|round(2) if exit_spread is defined else 'N/A' }}%</span></p>
+        <p>Last Updated: <span id="last_updated">{{ last_updated if last_updated is defined else 'N/A' }}</span></p>
     </div>
+
+    <div id="status-message" class="status-message"></div>
+    
     <div id="graph"></div>
     <h2>Manual Trading</h2>
+    <div>
+        <label for="volume-input">Trade Volume (coins):</label>
+        <input type="number" id="volume-input" value="0.01" min="0.001" step="0.001">
+    </div>
     <button class="button enter" onclick="manualTrade('enter')">Enter Trade (Buy Spot, Sell Futures)</button>
     <button class="button exit" onclick="manualTrade('exit')">Exit Trade (Sell Spot, Buy Futures)</button>
 
+    <div class="active-positions">
+        <h2>Active Positions</h2>
+        <table id="positions-table">
+            <thead>
+                <tr>
+                    <th>Symbol</th>
+                    <th>Entry Spread</th>
+                    <th>Current Spread</th>
+                    <th>Profit/Loss</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="positions-body">
+                {% for position in active_positions %}
+                    <tr>
+                        <td>{{ position.symbol }}</td>
+                        <td>{{ position.entry_spread }}</td>
+                        <td>{{ position.current_spread }}</td>
+                        <td>{{ position.profit_loss }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+    </div>
+
     <script>
         var socket = io();
+        var currentSymbol = "{{ symbol if symbol is defined else '' }}";
+        var chartObject = null;
+        
         socket.on('connect', function() {
-            var graph_json = JSON.parse('{{ graph_json|safe }}');
+            console.log('Connected to Server');
+
+            var graph_json = JSON.parse('{{ chart_json|safe }}');
             Plotly.newPlot('graph', graph_json.data, graph_json.layout);
-        });
-        socket.on('new_data', function(data) {
-            document.querySelector('#entry_spread').textContent = data.entry_spread.toFixed(2) + '%';
-            document.querySelector('#exit_spread').textContent = data.exit_spread.toFixed(2) + '%';
+
+            socket.emit('request_initial_data');
         });
 
+        socket.on('trading_pairs', function(data) {
+            var select = document.getElementById('symbol-select');
+            select.innerHTML = '';
+            data.forEach(function(pair) {
+                var option = document.createElement('option');
+                option.value = pair;
+                option.textContent = pair;
+                if (pair === currentSymbol) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+
+            if(!currentSymbol && data.pairs.length > 0) {
+                currentSymbol = data.pairs[0];
+                document.getElementById('current_symbol').textContent = currentSymbol;
+
+                requestSymbolData(currentSymbol);
+            }
+        });
+        socket.on('spread_update', function(data) {
+            if (data.symbol === currentSymbol) {
+                document.getElementById('entry_spread').textContent = data.entry_spread.toFixed(2) + '%';
+                document.getElementById('exit_spread').textContent = data.exit_spread.toFixed(2) + '%';
+                document.getElementById('last_updated').textContent = new Date().toLocaleTimeString();
+            
+            if (chartObject) {
+                Plotly.extendTraces(document.getElementById('graph'), {
+                    y: [[data.entry_spread, data.exit_spread]],
+                    x: [[new Date(data.timestamp)], [new Date(data.timestamp)]]
+                }, [0, 1]);
+            }
+        }
+        });
+
+        socket.on('chart_data', function(data) {
+            if (data.symbol === currentSymbol) {
+                renderChart(data.chart_json);
+            }
+        });
+
+        socket.on('positions_update', function(data) {
+            updatePositionsTable(data.positions);
+        });
+
+        socket.on('trade_response', function(data) {
+            const statusElement = document.getElementById('status-message');
+            statusElement.textContent = data.message;
+            statusElement.className = 'status-message ' + (data.status === 'success' ? 'success' : 'error');
+            statusElement.style.display = 'block';
+
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 5000);
+
+            if (data.success) {
+                socket.emit('request_positions');
+            }
+        });
+
+        function changeTradingPair() {
+            currentSymbol = document.getElementById('symbol-select').value;
+            document.getElementById('current_symbol').textContent = currentSymbol;
+            requestSymbolData(currentSymbol);
+        }
+
+        function requestSymbolData(symbol) {
+            socket.emit('request_symbol_data', { symbol: symbol });
+        }
+
+        function renderChart(chartData) {
+            if (typeof chartData === 'string') {
+                chartData = JSON.parse(chartData);
+            }
+            Plotly.newPlot('graph', chartData.data, chartData.layout);
+            chartObject = chartData;
+        }
+
+        function updatePositionsTable(positions) {
+            const tbody = document.getElementById('positions-body');
+            tbody.innerHTML = '';
+
+            if (positions.length === 0) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 5;
+                cell.textContent = 'No active positions';
+                cell.style.textAlign = 'center';
+                row.appendChild(cell);
+                tbody.appendChild(row);
+                return;
+            }
+
+            positions.forEach(pos => {
+                const row = document.createElement('tr');
+
+                const symbolCell = document.createElement('td');
+                symbolCell.textContent = pos.symbol;
+                row.appendChild(symbolCell);
+
+                const entryCell = document.createElement('td');
+                entryCell.textContent = pos.entry_spread.toFixed(2) + '%';
+                row.appendChild(entryCell);
+
+                const currentCell = document.createElement('td');
+                currentCell.textContent = pos.current_spread.toFixed(2) + '%';
+                row.appendChild(currentCell);
+
+                const pnlCell = document.createElement('td');
+                const pnlValue = pos.profit_loss.toFixed(2);
+                pnlCell.textContent = pnlValue + '%';
+                pnlCell.style.color = parseFloat(pnlValue) >= 0 ? 'green' : 'red';
+                row.appendChild(pnlCell);
+
+                const actionsCell = document.createElement('td');
+                const exitButton = document.createElement('button');
+                exitButton.className = 'button exit';
+                exitButton.style.padding = '5px 10px';
+                exitButton.style.margin = '0';
+                exitButton.textContent = 'Close Position';
+                exitButton.onclick = function() {
+                    closePosition(pos.position_id, pos.volume);
+                };
+                actionsCell.appendChild(exitButton);
+                row.appendChild(actionsCell);
+
+                tbody.appendChild(row);
+            });
+        }
+
         function manualTrade(action) {
-            socket.emit('manual_trade', {action: action});
-            alert('Manual ' + action + ' trade executed');
+            const volume = parseFloat(document.getElementById('volume-input').value);
+
+            if (isNaN(volume) || volume <= 0) {
+                alert('Please enter a valid trade volume.');
+                return;
+            }
+            socket.emit('manual_trade', {
+                action: action,
+                symbol: currentSymbol,
+                volume: volume
+            });
+        }
+
+        function closePosition(positionId, volume) {
+            socket.emit('manual_trade', {
+                action: 'exit',
+                position_id: positionId,
+                volume: volume
+            });
         }
     </script>
 </body>

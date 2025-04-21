@@ -169,7 +169,7 @@ class ArbitrageEngine:
                     self.socketio.emit('spread_update', {
                         'symbol': symbol,
                         'entry_spread': spread_data['entry_spread'],
-                        'tradable_volume': spread_data['tradable_volume_coins'],
+                        'exit_spread': spread_data['exit_spread'],
                         'timestamp': datetime.now().isoformat()
                     })
                 
@@ -814,10 +814,10 @@ class ArbitrageEngine:
                 """
                 SELECT * FROM spreads
                 WHERE symbol = %s
-                AND timestamp > NOW() - INTERVAL %s HOUR
+                AND timestamp > NOW() - INTERVAL %s
                 ORDER BY timestamp ASC
                 """,
-                (symbol, hours)
+                (symbol, f"{hours} hours")
             )
             
             history = [dict(record) for record in cursor.fetchall()]
@@ -986,4 +986,93 @@ class ArbitrageEngine:
         except Exception as e:
             logger.error(f"Error generating spread chart: {str(e)}")
             return None
+        
+    def execute_manual_entry_trade(self, symbol: str, volume_coins: float):
+        """Execute a manual entry trade"""
+        try:
+            # Find the pair config
+            pair_config = next(
+                (p for p in self.config.TRADING_PAIRS if p['symbol'] == symbol),
+                None
+            )
+            
+            if not pair_config:
+                logger.warning(f"No configuration found for symbol {symbol}")
+                return
+            
+            spot_exchange = pair_config['spot_exchange']
+            futures_exchange = pair_config['futures_exchange']
+            spot_symbol = pair_config['spot_symbol']
+            futures_symbol = pair_config['futures_symbol']
+            
+            # Fetch order books
+            spot_order_book = self.exchange_connector.get_order_book(
+                spot_exchange, spot_symbol
+            )
+            
+            futures_order_book = self.exchange_connector.get_order_book(
+                futures_exchange, futures_symbol
+            )
+            
+            # Calculate entry spread
+            entry_data = self.spread_calculator.calculate_entry_spread(
+                spot_order_book, futures_order_book, volume_coins
+            )
+            
+            # Execute the trade
+            self._execute_arbitrage_trade(
+                symbol, spot_exchange, futures_exchange,
+                spot_symbol, futures_symbol, entry_data
+            )
+        
+        except Exception as e:
+            logger.error(f"Error executing manual entry trade: {str(e)}")
+
+    def execute_manual_exit_trade(self, position_id: str, volume_coins: float):
+        """Execute a manual exit trade"""
+        try:
+            # Get the position details
+            position, adjustments = self.get_position_details(position_id)
+            
+            if not position:
+                logger.warning(f"No position found with ID {position_id}")
+                return
+            
+            # Find the pair config
+            pair_config = next(
+                (p for p in self.config.TRADING_PAIRS if p['symbol'] == position['symbol']),
+                None
+            )
+            
+            if not pair_config:
+                logger.warning(f"No configuration found for symbol {position['symbol']}")
+                return
+            
+            spot_exchange = pair_config['spot_exchange']
+            futures_exchange = pair_config['futures_exchange']
+            spot_symbol = pair_config['spot_symbol']
+            futures_symbol = pair_config['futures_symbol']
+            
+            # Fetch order books
+            spot_order_book = self.exchange_connector.get_order_book(
+                spot_exchange, spot_symbol
+            )
+            
+            futures_order_book = self.exchange_connector.get_order_book(
+                futures_exchange, futures_symbol
+            )
+            
+            # Calculate exit spread
+            exit_data = self.spread_calculator.calculate_exit_spread(
+                spot_order_book, futures_order_book, volume_coins
+            )
+            
+            # Execute the exit trade
+            self._execute_exit_trade(
+                position_id, volume_coins, spot_exchange, futures_exchange,
+                spot_symbol, futures_symbol, exit_data
+            )
+        
+        except Exception as e:
+            logger.error(f"Error executing manual exit trade: {str(e)}")
 

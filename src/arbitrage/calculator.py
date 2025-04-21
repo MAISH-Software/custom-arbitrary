@@ -265,6 +265,7 @@ class SpreadCalculator:
         
         # Determine if there's a trade opportunity
         trade_opportunity = entry_spread > self.spread_in
+        close_opportunity = exit_spread > self.spread_out
         
         result = {
             'entry_spread': entry_spread,
@@ -279,7 +280,8 @@ class SpreadCalculator:
             'futures_weighted_ask': futures_weighted_ask,
             'tradable_volume_coins': spot_coins,
             'tradable_volume_usdt': actual_spot_usdt,
-            'trade_opportunity': trade_opportunity
+            'trade_opportunity': trade_opportunity,
+            'close_opportunity': close_opportunity
         }
         
         logger.info(f"Entry spread: {entry_spread:.2f}%, Exit spread: {exit_spread:.2f}%, Trade opportunity: {trade_opportunity}")
@@ -356,7 +358,7 @@ class SpreadCalculator:
             cursor.execute(
                 """
                 SELECT insert_spread(
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                 )
                 """,
                 (
