@@ -12453,3 +12453,87 @@ LINE 4: ...ymbol = 'BTC/USDT' AND created_at > NOW() - INTERVAL 24 HOUR
 2025-04-21 22:20:09,915 - spread_calculator - INFO - Entry spread: -0.00%, Exit spread: -0.05%, Trade opportunity: False
 2025-04-21 22:20:09,960 - spread_calculator - INFO - Spread data stored successfully
 2025-04-21 22:20:09,960 - spread_calculator - INFO - Stored procedure executed successfully
+2025-05-10 04:17:51,134 - arbitrage_engine - INFO - Using provided configuration dictionary
+2025-05-10 04:17:51,266 - arbitrage_engine - INFO - Using provided configuration dictionary
+2025-05-10 04:17:51,303 - arbitrage_engine - INFO - Started arbitrage monitoring
+2025-05-10 04:17:51,310 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.223.43:5000
+2025-05-10 04:17:51,312 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-05-10 04:19:14,447 - spread_calculator - ERROR - Database connection error: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:19:14,448 - spread_calculator - ERROR - Error storing order book data: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:19:14,448 - arbitrage_engine - ERROR - Error checking arbitrage for BTC/USDT: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:19:14,448 - arbitrage_engine - ERROR - Database connection error: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:19:14,448 - arbitrage_engine - ERROR - Error checking exit opportunities: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:19:21,711 - spread_calculator - INFO - Entry spread: 0.08%, Exit spread: -0.08%, Trade opportunity: False
+2025-05-10 04:19:21,712 - spread_calculator - INFO - Exit spread: -0.08%, Close opportunity: False
+2025-05-10 04:19:21,713 - arbitrage_engine - INFO - Current spreads: [{'symbol': 'BTC/USDT', 'spot_exchange': 'coinex', 'futures_exchange': 'gateio', 'entry_spread': 0.08167323672551244, 'exit_spread': -0.08171327076317063, 'entry_opportunity': False, 'exit_opportunity': False, 'tradable_volume': 0.002428438294645721, 'timestamp': datetime.datetime(2025, 5, 10, 1, 19, 21, 713376, tzinfo=<UTC>)}]
+2025-05-10 04:19:21,714 - arbitrage_engine - ERROR - Database connection error: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:19:21,714 - arbitrage_engine - ERROR - Error getting spread history: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:19:21,714 - arbitrage_engine - WARNING - No spread history found for BTC/USDT
+2025-05-10 04:19:21,750 - werkzeug - INFO - 127.0.0.1 - - [10/May/2025 04:19:21] "GET / HTTP/1.1" 200 -
+2025-05-10 04:19:40,977 - werkzeug - INFO - 127.0.0.1 - - [10/May/2025 04:19:40] "GET /socket.io/?EIO=4&transport=polling&t=PQtniki HTTP/1.1" 200 -
+2025-05-10 04:19:41,065 - werkzeug - INFO - 127.0.0.1 - - [10/May/2025 04:19:41] "POST /socket.io/?EIO=4&transport=polling&t=PQtnilx&sid=fshbcRjQD71jd_QpAAAA HTTP/1.1" 200 -
+2025-05-10 04:19:41,096 - werkzeug - INFO - 127.0.0.1 - - [10/May/2025 04:19:41] "GET /socket.io/?EIO=4&transport=polling&t=PQtnimT&sid=fshbcRjQD71jd_QpAAAA HTTP/1.1" 200 -
+2025-05-10 04:19:41,129 - werkzeug - INFO - 127.0.0.1 - - [10/May/2025 04:19:41] "GET /socket.io/?EIO=4&transport=polling&t=PQtnin2&sid=fshbcRjQD71jd_QpAAAA HTTP/1.1" 200 -
+2025-05-10 04:19:41,134 - werkzeug - INFO - 127.0.0.1 - - [10/May/2025 04:19:41] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-05-10 04:20:16,504 - spread_calculator - ERROR - Database connection error: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:20:16,504 - spread_calculator - ERROR - Error storing order book data: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:20:16,504 - arbitrage_engine - ERROR - Error checking arbitrage for BTC/USDT: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:20:16,505 - arbitrage_engine - ERROR - Database connection error: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:20:16,505 - arbitrage_engine - ERROR - Error checking exit opportunities: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:21:18,242 - spread_calculator - ERROR - Database connection error: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:21:18,245 - spread_calculator - ERROR - Error storing order book data: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:21:18,247 - arbitrage_engine - ERROR - Error checking arbitrage for BTC/USDT: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:21:18,247 - arbitrage_engine - ERROR - Database connection error: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:21:18,247 - arbitrage_engine - ERROR - Error checking exit opportunities: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:22:20,207 - spread_calculator - ERROR - Database connection error: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:22:20,207 - spread_calculator - ERROR - Error storing order book data: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:22:20,207 - arbitrage_engine - ERROR - Error checking arbitrage for BTC/USDT: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:22:20,208 - arbitrage_engine - ERROR - Database connection error: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-05-10 04:22:20,209 - arbitrage_engine - ERROR - Error checking exit opportunities: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+

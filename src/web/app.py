@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_socketio import SocketIO
-from arbitrage.engine import ArbitrageEngine
+from src.arbitrage.engine import ArbitrageEngine
 from src.web.routes import bp as main_blueprint
 
 
