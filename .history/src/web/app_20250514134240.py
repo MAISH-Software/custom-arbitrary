@@ -36,30 +36,6 @@ def create_app(config):
         print(f"Manual trade data received: {data}")
         # You can add your logic here to process the manual trade
 
-    @socketio.on('request_initial_data')
-    def handle_request_initial_data():
-        trading_pairs = [s['symbol'] for s in engine.get_current_spreads()] if engine.get_current_spreads() else []
-        active_positions = engine.get_open_positions() if hasattr(engine, 'get_open_positions') else []
-        socketio.emit('trading_pairs', trading_pairs)
-        socketio.emit('positions_update', {'positions': active_positions})
-
-    @socketio.on('request_symbol_data')
-    def handle_request_symbol_data(data):
-        symbol = data.get('symbol', 'BTC/USDT')
-        spreads = engine.get_current_spreads()
-        spread_data = next((s for s in spreads if s['symbol'] == symbol), None) if spreads else None
-        chart = engine.generate_spread_chart(symbol, 24) if spread_data else None
-
-        if spread_data:
-            socketio.emit('spread_update', {
-                'symbol': symbol,
-                'entry_spread': spread_data['entry_spread'],
-                'exit_spread': spread_data['exit_spread'],
-                'timestamp': spread_data.get('timestamp')
-            })
-        if chart:
-            socketio.emit('chart_data', {'symbol': symbol, 'chart_json': chart.to_json()})
-
     # Register blueprints
     app.register_blueprint(main_blueprint)
     socketio.engine = engine 

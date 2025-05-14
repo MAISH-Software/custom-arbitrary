@@ -17,21 +17,10 @@ def dashboard():
     btc_spread = next((s for s in spreads if s['symbol'] == 'BTC/USDT'), None)
     entry_spread = btc_spread['entry_spread'] if btc_spread else 0
     exit_spread = btc_spread['exit_spread'] if btc_spread else 0
-
-    # Additional data for frontend rendering
-    trading_pairs = [s['symbol'] for s in spreads] if spreads else []
-    symbol = 'BTC/USDT'
-    last_updated = None  # Could be set to current time or from engine if available
-    active_positions = engine.get_open_positions() if hasattr(engine, 'get_open_positions') else []
-
     return render_template('index.html',
                             entry_spread=entry_spread,
                             exit_spread=exit_spread,
-                            chart_json=json.dumps(chart.to_json()) if chart else '{}',
-                            trading_pairs=trading_pairs,
-                            symbol=symbol,
-                            last_updated=last_updated,
-                            active_positions=active_positions)
+                            chart_json=json.dumps(chart.to_json()) if chart else '{}')
 
 @bp.route('/api/positions', methods=['GET'])
 def get_positions():
